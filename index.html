@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>GMCS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <section class="hero">
+        <div class="hero-content">
+            <div class="right-side">
+                <div class="flip-container" id="flipContainer">
+                    <div class="login-container">
+                        <h2>Login</h2>
+                        <form id="loginForm" action="login.php" method="POST">
+                            <div class="input-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                            <div class="input-group">
+                                <button type="submit">Login</button>
+                            </div>
+                            <p class="register-link">Don't have an account? <a href="#" id="showSignup">Register here</a></p>
+                            <p class="register-link">
+                                Forgot your password? <a href="#" id="forgotPassword">Reset here</a>
+                            </p>
+                        </form>
+                    </div>
+
+                    <div class="signup-container">
+                        <h2>Sign Up</h2>
+                        <form id="signup" action="signup.php" method="POST">
+                            <div class="input-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" placeholder="Enter Email" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" placeholder="Choose a password" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="confirm-password">Confirm Password</label>
+                                <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
+                            </div>
+                            <div class="input-group">
+                                <button type="submit">Sign Up</button>
+                            </div>
+                            <p class="register-link">Already have an account? <a href="#" id="showLogin">Login here</a></p>
+                        </form>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const showSignup = document.getElementById('showSignup');
+        const showLogin = document.getElementById('showLogin');
+        const flipContainer = document.getElementById('flipContainer');
+
+        showSignup.addEventListener('click', () => {
+            flipContainer.classList.add('flip');
+        });
+
+        showLogin.addEventListener('click', () => {
+            flipContainer.classList.remove('flip');
+        });
+    </script>
+</body>
+</html>
