@@ -151,7 +151,7 @@ $username = $_SESSION['username'];
 
     <div class="option-box">
         <h2>View</h2>
-        <form action="view/view_management.php" method="POST">
+        <form action="user/user_dashboard.php" method="POST">
             <button type="submit">Go to View</button>
         </form>
     </div>

@@ -6,13 +6,13 @@ if ($_SESSION['role'] !== 'admin') {
     header("Location: ../../index.html");
     exit();
 }
-
-$servername = "localhost";
+$host = "127.0.0.1";
 $username = "root";
 $password = "";
-$dbname = "gcms";
+$database = "gcms";
+$port = 3307;
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli($host, $username, $password, $database, $port);
 
 if (isset($_POST['add_game'])) {
     if (isset($_FILES['game_image']) && $_FILES['game_image']['error'] == 0) {

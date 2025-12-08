@@ -12,12 +12,13 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
-$servername = "localhost";
+$host = "127.0.0.1";
 $username = "root";
 $password = "";
-$dbname = "gcms";
+$database = "gcms";
+$port = 3307;
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli($host, $username, $password, $database, $port);
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
