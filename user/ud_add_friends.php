@@ -1,69 +1,70 @@
 <?php
 session_start();
-require_once "../db.php";
-header("Content-Type: application/json");
+require_once '../db.php';
 
-// DEBUG: Check session user ID
-var_dump($_SESSION['user_id']); // <-- Add this line
+header('Content-Type: application/json');
 
-// 1. Check login
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["error" => "Not logged in"]);
+    echo json_encode(['success' => false, 'error' => 'Not logged in']);
     exit;
 }
 
-$data = json_decode(file_get_contents("php://input"), true);
-if (!isset($data['username']) || empty($data['username'])) {
-    echo json_encode(["error" => "No username provided"]);
+$sender_id = (int)$_SESSION['user_id'];
+
+// Get POSTed JSON
+$data = json_decode(file_get_contents('php://input'), true);
+if (!isset($data['username']) || empty(trim($data['username']))) {
+    echo json_encode(['success' => false, 'error' => 'Username required']);
     exit;
 }
 
-$sender = intval($_SESSION['user_id']);
-$username = trim($data['username']);
+$friend_username = trim($data['username']);
 
-// 2. Get receiver_id
-$q = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
-$q->bind_param("s", $username);
-$q->execute();
-$res = $q->get_result();
-
+// Check if user exists
+$stmt = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
+if (!$stmt) {
+    error_log("Prepare failed: " . $conn->error);
+    echo json_encode(['success' => false, 'error' => 'Database prepare failed']);
+    exit;
+}
+$stmt->bind_param("s", $friend_username);
+$stmt->execute();
+$res = $stmt->get_result();
 if ($res->num_rows === 0) {
-    echo json_encode(["error" => "User not found"]);
+    echo json_encode(['success' => false, 'error' => 'User not found']);
     exit;
 }
 
-$row = $res->fetch_assoc();
-$receiver = intval($row['user_id']);
+$receiver = $res->fetch_assoc();
+$receiver_id = (int)$receiver['user_id'];
 
-// 3. Prevent adding yourself
-if ($sender === $receiver) {
-    echo json_encode(["error" => "You cannot add yourself"]);
+// Check if already friends or request exists
+$stmt = $conn->prepare("SELECT * FROM friend_requests WHERE sender_id=? AND receiver_id=? AND status='pending'");
+if (!$stmt) {
+    error_log("Prepare failed: " . $conn->error);
+    echo json_encode(['success' => false, 'error' => 'Database prepare failed']);
+    exit;
+}
+$stmt->bind_param("ii", $sender_id, $receiver_id);
+$stmt->execute();
+if ($stmt->get_result()->num_rows > 0) {
+    echo json_encode(['success' => false, 'error' => 'Friend request already sent']);
     exit;
 }
 
-// 4. Check if request exists
-$check = $conn->prepare("
-    SELECT id FROM friend_requests 
-    WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
-");
-$check->bind_param("iiii", $sender, $receiver, $receiver, $sender);
-$check->execute();
-if ($check->get_result()->num_rows > 0) {
-    echo json_encode(["error" => "Request already exists"]);
+// Insert friend request
+$stmt = $conn->prepare("INSERT INTO friend_requests (sender_id, receiver_id, status) VALUES (?, ?, 'pending')");
+if (!$stmt) {
+    error_log("Prepare failed: " . $conn->error);
+    echo json_encode(['success' => false, 'error' => 'Database prepare failed']);
     exit;
 }
-
-// 5. Insert friend request
-$add = $conn->prepare("
-    INSERT INTO friend_requests (sender_id, receiver_id, status)
-    VALUES (?, ?, 'pending')
-");
-$add->bind_param("ii", $sender, $receiver);
-
-if ($add->execute()) {
-    echo json_encode(["success" => true, "message" => "Friend request sent"]);
+$stmt->bind_param("ii", $sender_id, $receiver_id);
+if ($stmt->execute()) {
+    echo json_encode(['success' => true, 'friend' => ['user_id' => $receiver_id, 'username' => $friend_username]]);
 } else {
-    echo json_encode(["success" => false, "error" => $conn->error]);
+    error_log("Insert failed: " . $stmt->error);
+    echo json_encode(['success' => false, 'error' => 'Database insert failed: ' . $stmt->error]);
 }
-$add->close();
-$q->close();
+$stmt->close();
+?>

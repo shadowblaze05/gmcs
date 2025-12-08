@@ -1,34 +1,45 @@
 <?php
-// ud_send_message.php
 session_start();
 require_once '../db.php';
+
 header('Content-Type: application/json');
+
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['error' => 'not_logged']);
+    echo json_encode(['success' => false, 'error' => 'Not logged in']);
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-if (!$input || empty($input['type']) || empty($input['id']) || !isset($input['content'])) {
-    echo json_encode(['error' => 'missing']);
+$user_id = (int)$_SESSION['user_id'];
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (empty($data['type']) || empty($data['id']) || empty($data['content'])) {
+    echo json_encode(['success' => false, 'error' => 'Invalid data']);
     exit;
 }
 
-$me = (int)$_SESSION['user_id'];
-$type = $input['type'];
-$id = (int)$input['id'];
-$content = trim($input['content']);
-if ($content === '') {
-    echo json_encode(['error' => 'empty']);
-    exit;
-}
+$type = $data['type'];
+$id = (int)$data['id'];
+$content = trim($data['content']);
 
-if ($type === 'community') {
-    $stmt = $conn->prepare("INSERT INTO messages (sender_id, target_type, target_id, content) VALUES (?, 'community', ?, ?)");
-    $stmt->bind_param('iis', $me, $id, $content);
+if ($type === 'private') {
+    $stmt = $conn->prepare("INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)");
+    $stmt->bind_param("iis", $user_id, $id, $content);
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Failed to send private message']);
+    }
+    $stmt->close();
+} elseif ($type === 'community') {
+    $stmt = $conn->prepare("INSERT INTO community_messages (user_id, game_id, content) VALUES (?, ?, ?)");
+    $stmt->bind_param("iis", $user_id, $id, $content);
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Failed to send community message']);
+    }
+    $stmt->close();
 } else {
-    $stmt = $conn->prepare("INSERT INTO messages (sender_id, target_type, target_id, content) VALUES (?, 'user', ?, ?)");
-    $stmt->bind_param('iis', $me, $id, $content);
+    echo json_encode(['success' => false, 'error' => 'Unknown chat type']);
 }
-$ok = $stmt->execute();
-echo json_encode(['success' => (bool)$ok]);
+?>

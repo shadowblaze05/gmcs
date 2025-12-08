@@ -1,31 +1,47 @@
 <?php
-// ud_get_messages.php
 session_start();
 require_once '../db.php';
+
 header('Content-Type: application/json');
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode([]);
     exit;
 }
-$me = (int)$_SESSION['user_id'];
 
-$type = $_GET['type'] ?? null;
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if (!$type || !$id) {
-    echo json_encode([]);
-    exit;
-}
+$user_id = (int)$_SESSION['user_id'];
+$type = $_GET['type'] ?? '';
+$id = (int)($_GET['id'] ?? 0);
 
-if ($type === 'community') {
-    $stmt = $conn->prepare("SELECT m.*, u.username FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.target_type = 'community' AND m.target_id = ? ORDER BY m.created_at ASC");
-    $stmt->bind_param('i', $id);
+if ($type === 'private') {
+    $stmt = $conn->prepare("
+        SELECT m.sender_id, m.content, m.created_at, u.username
+        FROM messages m
+        JOIN users u ON m.sender_id = u.user_id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.created_at ASC
+    ");
+    $stmt->bind_param("iiii", $user_id, $id, $id, $user_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $messages = $res->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    echo json_encode($messages);
+} elseif ($type === 'community') {
+    $stmt = $conn->prepare("
+        SELECT cm.user_id AS sender_id, cm.content, cm.created_at, u.username
+        FROM community_messages cm
+        JOIN users u ON cm.user_id = u.user_id
+        WHERE cm.game_id = ?
+        ORDER BY cm.created_at ASC
+    ");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $messages = $res->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    echo json_encode($messages);
 } else {
-    $other = $id;
-    $stmt = $conn->prepare("SELECT m.*, u.username FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.target_type = 'user' AND ((m.sender_id = ? AND m.target_id = ?) OR (m.sender_id = ? AND m.target_id = ?)) ORDER BY m.created_at ASC");
-    $stmt->bind_param('iiii', $me, $other, $other, $me);
+    echo json_encode([]);
 }
-$stmt->execute();
-$res = $stmt->get_result();
-$out = [];
-while ($r = $res->fetch_assoc()) $out[] = $r;
-echo json_encode($out);
+?>

@@ -1,7 +1,6 @@
 <?php
 session_start();
 require "../db.php";
-
 header("Content-Type: application/json");
 
 if (!isset($_SESSION['user_id'])) {
@@ -12,17 +11,16 @@ if (!isset($_SESSION['user_id'])) {
 $user = intval($_SESSION['user_id']);
 
 $q = $conn->prepare("
-SELECT fr.id AS request_id, fr.sender_id, u.username
-FROM friend_requests fr
-JOIN users u ON u.user_id = fr.sender_id
-WHERE fr.receiver_id = ? AND fr.status = 'pending'
+    SELECT fr.id AS request_id, u.username
+    FROM friend_requests fr
+    JOIN users u ON u.user_id = fr.sender_id
+    WHERE fr.receiver_id = ? AND fr.status = 'pending'
 ");
 $q->bind_param("i", $user);
 $q->execute();
-
 $res = $q->get_result();
-$requests = [];
 
+$requests = [];
 while ($row = $res->fetch_assoc()) {
     $requests[] = $row;
 }

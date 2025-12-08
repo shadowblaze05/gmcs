@@ -1,37 +1,33 @@
 <?php
 session_start();
-require "../db.php";
-header("Content-Type: application/json");
+require_once '../db.php';
+
+header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["error" => "Not logged in"]);
+    echo json_encode(['success' => false, 'error' => 'Not logged in']);
     exit;
 }
 
-$data = json_decode(file_get_contents("php://input"), true);
-$request_id = intval($data['request_id']);
+$user_id = (int)$_SESSION['user_id'];
 
-// Ensure only receiver can decline
-$q = $conn->prepare("SELECT receiver_id FROM friend_requests WHERE id=?");
-$q->bind_param("i", $request_id);
-$q->execute();
-$row = $q->get_result()->fetch_assoc();
+$data = json_decode(file_get_contents('php://input'), true);
+$request_id = $data['request_id'] ?? 0;
 
-if (!$row) {
-    echo json_encode(["error" => "Invalid request"]);
+if (!$request_id) {
+    echo json_encode(['success' => false, 'error' => 'Invalid request ID']);
     exit;
 }
 
-if ($row['receiver_id'] != $_SESSION['user_id']) {
-    echo json_encode(["error" => "Unauthorized"]);
-    exit;
-}
-
-// Decline request
-$stmt = $conn->prepare("UPDATE friend_requests SET status='declined' WHERE id=?");
-$stmt->bind_param("i", $request_id);
+// Update request as declined
+$stmt = $conn->prepare("UPDATE friend_requests SET status='declined' WHERE id = ? AND receiver_id = ?");
+$stmt->bind_param("ii", $request_id, $user_id);
 $stmt->execute();
-
-echo json_encode(["success" => true]);
+$affected = $stmt->affected_rows;
 $stmt->close();
-$q->close();
+
+if ($affected) {
+    echo json_encode(['success' => true]);
+} else {
+    echo json_encode(['success' => false, 'error' => 'Request not found or already handled']);
+}

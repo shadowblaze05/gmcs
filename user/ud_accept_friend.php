@@ -1,47 +1,57 @@
 <?php
 session_start();
-require "../db.php";
-header("Content-Type: application/json");
+require_once '../db.php';
 
+header('Content-Type: application/json');
+
+// Ensure logged in
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["error" => "Not logged in"]);
+    echo json_encode(['success' => false, 'error' => 'Not logged in']);
     exit;
 }
 
-$data = json_decode(file_get_contents("php://input"), true);
-$request_id = intval($data['request_id']);
+$user_id = (int)$_SESSION['user_id'];
 
-// Fetch request info
-$q = $conn->prepare("SELECT sender_id, receiver_id FROM friend_requests WHERE id = ?");
-$q->bind_param("i", $request_id);
-$q->execute();
-$row = $q->get_result()->fetch_assoc();
+// Read JSON input
+$data = json_decode(file_get_contents('php://input'), true);
+$request_id = $data['request_id'] ?? 0;
 
-if (!$row) {
-    echo json_encode(["error" => "Invalid request"]);
+if (!$request_id) {
+    echo json_encode(['success' => false, 'error' => 'Invalid request ID']);
     exit;
 }
 
-$sender = intval($row['sender_id']);
-$receiver = intval($row['receiver_id']);
+// Get sender_id from friend_requests
+$stmt = $conn->prepare("SELECT sender_id FROM friend_requests WHERE id = ? AND receiver_id = ? AND status='pending'");
+$stmt->bind_param("ii", $request_id, $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $sender_id = $row['sender_id'];
 
-// Only receiver can accept
-if ($_SESSION['user_id'] !== $receiver) {
-    echo json_encode(["error" => "Unauthorized"]);
-    exit;
+    // Add to friends table (both directions)
+    $stmt1 = $conn->prepare("INSERT INTO friends (user_id, friend_id) VALUES (?, ?), (?, ?)");
+    $stmt1->bind_param("iiii", $user_id, $sender_id, $sender_id, $user_id);
+    $stmt1->execute();
+    $stmt1->close();
+
+    // Update request as accepted
+    $stmt2 = $conn->prepare("UPDATE friend_requests SET status='accepted' WHERE id = ?");
+    $stmt2->bind_param("i", $request_id);
+    $stmt2->execute();
+    $stmt2->close();
+
+    // Return success and sender info
+    $stmt3 = $conn->prepare("SELECT user_id, username FROM users WHERE user_id = ?");
+    $stmt3->bind_param("i", $sender_id);
+    $stmt3->execute();
+    $friend = $stmt3->get_result()->fetch_assoc();
+    $stmt3->close();
+
+    echo json_encode(['success' => true, 'friend' => $friend]);
+} else {
+    echo json_encode(['success' => false, 'error' => 'Friend request not found']);
 }
 
-// Approve request
-$update = $conn->prepare("UPDATE friend_requests SET status='accepted' WHERE id=?");
-$update->bind_param("i", $request_id);
-$update->execute();
-
-// Add to friends table (bidirectional)
-$add = $conn->prepare("INSERT INTO friends (user_id, friend_id) VALUES (?, ?), (?, ?)");
-$add->bind_param("iiii", $sender, $receiver, $receiver, $sender);
-$add->execute();
-
-echo json_encode(["success" => true]);
-$update->close();
-$add->close();
-$q->close();
+$stmt->close();
+?>
