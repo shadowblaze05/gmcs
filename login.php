@@ -36,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
 
+            $action = "User {$user['username']} logged in";
+            require_once 'admin/admin_manage/audit.php';
+
             if ($user['role'] === 'admin') {
                 header("Location: admin/main.php");
             } else {
@@ -51,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $stmt->close();
 }
-
 $conn->close();
 ?>
 

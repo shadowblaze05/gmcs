@@ -2,6 +2,11 @@
 // ud_add_game.php
 session_start();
 require_once '../db.php';
+
+$user_id = (int)$_SESSION['user_id'];
+$action = "Added/Updated game in user games: User ID $user_id";
+require '../admin/admin_manage/audit.php';
+
 header('Content-Type: application/json');
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['error' => 'not_logged']);
@@ -43,5 +48,9 @@ if ($stmt->get_result()->num_rows > 0) {
     $stmt = $conn->prepare("INSERT INTO user_games (user_id, game_id, skins) VALUES (?, ?, ?)");
     $stmt->bind_param('iis', $me, $game_id, $skins);
     $ok = $stmt->execute();
+
+    $action = "Added game ID: $game_id to user ID: $me";
+    require '../admin/admin_manage/audit.php';
 }
 echo json_encode(['success' => (bool)$ok]);
+?>

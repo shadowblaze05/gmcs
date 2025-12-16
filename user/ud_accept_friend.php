@@ -2,6 +2,10 @@
 session_start();
 require_once '../db.php';
 
+$user_id = (int)$_SESSION['user_id'];
+$action = "Accepted friend request: User ID $user_id";
+require '../admin/admin_manage/audit.php';
+
 header('Content-Type: application/json');
 
 // Ensure logged in
@@ -10,7 +14,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$user_id = (int)$_SESSION['user_id'];
 
 // Read JSON input
 $data = json_decode(file_get_contents('php://input'), true);

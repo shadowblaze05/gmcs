@@ -4,6 +4,10 @@ require_once '../db.php';
 
 header('Content-Type: application/json');
 
+$user_id = (int)$_SESSION['user_id'];
+$action = "Declined friend request: User ID $user_id";
+require '../admin/admin_manage/audit.php';
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Not logged in']);
     exit;
@@ -26,8 +30,12 @@ $stmt->execute();
 $affected = $stmt->affected_rows;
 $stmt->close();
 
+$action = "Declined friend request ID: $request_id by User ID: $user_id";
+require '../admin/admin_manage/audit.php';
+
 if ($affected) {
     echo json_encode(['success' => true]);
 } else {
     echo json_encode(['success' => false, 'error' => 'Request not found or already handled']);
 }
+?>

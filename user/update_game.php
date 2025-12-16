@@ -8,6 +8,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = (int)$_SESSION['user_id'];
+$action = "Visited Update Game page";
+require '../admin/admin_manage/audit.php';
+
 
 /* ---------------------------------------------------------
    STEP 1 — SHOW UPDATE FORM

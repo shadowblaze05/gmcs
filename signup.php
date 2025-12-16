@@ -1,7 +1,7 @@
 <?php
 include("db.php");
 
-// Enable error reporting for debugging (turn off in production)
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -47,8 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("sss", $username, $email, $hashed_password);
 
     if ($stmt->execute()) {
+        // ✅ Get the new user ID
+        $user_id = $stmt->insert_id;
+
+        // ✅ Prepare audit info
+        $action = "New user signup: $username (ID: $user_id)";
+        require_once 'admin/admin_manage/audit.php';
+
         echo "Signup successful! Redirecting to login page...";
-        // Redirect after 2 seconds
         echo "<script>setTimeout(function(){ window.location.href='index.html'; }, 2000);</script>";
     } else {
         echo "Error: " . $stmt->error;
@@ -58,4 +64,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $conn->close();
-?>

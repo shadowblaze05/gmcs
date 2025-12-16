@@ -4,6 +4,9 @@ require_once '../db.php';
 header('Content-Type: application/json');
 
 $user_id = (int)$_SESSION['user_id'];
+$action = "Viewed profile games for user ID: $user_id";
+require '../admin/admin_manage/audit.php';
+
 
 $stmt = $conn->prepare("
     SELECT collection_id, game_id, title
@@ -21,4 +24,5 @@ while ($row = $res->fetch_assoc()) {
 $stmt->close();
 
 echo json_encode($games);
+
 ?>

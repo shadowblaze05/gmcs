@@ -11,15 +11,10 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
+$user_id = $_SESSION['user_id'];
 
-if ($_SESSION['role'] !== 'admin') {
-    header("Location: ../../index.html");
-    exit();
-}
+$action = "Visited Review management page";
+require 'audit.php';
 
 $user_id = $_SESSION['user_id']; 
 function getReviews($conn, $user_id) {
@@ -49,6 +44,8 @@ if (isset($_POST['add_review'])) {
     $stmt->execute();
     $stmt->close();
     header("Location: " . $_SERVER['PHP_SELF']);
+    $action = "Added new review for game ID: $game_id";
+    require 'audit.php';
     exit();
 }
 
@@ -65,6 +62,8 @@ if (isset($_POST['update_review'])) {
     $stmt->execute();
     $stmt->close();
     header("Location: " . $_SERVER['PHP_SELF']);
+    $action = "Updated review ID: $review_id";
+    require 'audit.php';
     exit();
 }
 
@@ -76,6 +75,8 @@ if (isset($_GET['delete_review'])) {
     $stmt->execute();
     $stmt->close();
     header("Location: " . $_SERVER['PHP_SELF']);
+    $action = "Deleted review ID: $review_id";
+    require 'audit.php';
     exit();
 }
 $reviews = getReviews($conn, $user_id);
@@ -87,6 +88,7 @@ if (isset($_GET['edit_review'])) {
     $result = $conn->query("SELECT * FROM reviews WHERE review_id = $review_id AND user_id = $user_id");
     $editData = $result->fetch_assoc();
 }
+
 ?>
 
 <!DOCTYPE html>

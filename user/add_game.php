@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+$action = "Added game to collection: User ID $user_id";
+require '../admin/admin_manage/audit.php';
 
 // Check if game_id was sent from the form
 if (!isset($_POST['game_id']) || empty($_POST['game_id'])) {
@@ -30,6 +32,8 @@ $stmt->bind_param("ii", $user_id, $game_id);
 
 if ($stmt->execute()) {
     header("Location: user_dashboard.php");
+    $action = "Added game ID: $game_id to user ID: $user_id";
+    require '../admin/admin_manage/audit.php';
     exit();
 } else {
     echo "Insert failed: " . $stmt->error;
@@ -37,3 +41,4 @@ if ($stmt->execute()) {
 
 $stmt->close();
 $conn->close();
+?>

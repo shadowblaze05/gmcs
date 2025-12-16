@@ -2,6 +2,11 @@
 session_start();
 require_once '../db.php';
 
+$user_id = (int)$_SESSION['user_id'];
+$action = "Sent message: User ID $user_id";
+require '../admin/admin_manage/audit.php';
+
+
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
@@ -26,6 +31,9 @@ if ($type === 'private') {
     $stmt->bind_param("iis", $user_id, $id, $content);
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
+        $stmt->close();
+        $action = "Sent private message to User ID: $id by User ID: $user_id";
+        require '../admin/admin_manage/audit.php';
     } else {
         echo json_encode(['success' => false, 'error' => 'Failed to send private message']);
     }
@@ -35,6 +43,9 @@ if ($type === 'private') {
     $stmt->bind_param("iis", $user_id, $id, $content);
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
+        $stmt->close();
+        $action = "Sent community message to Game ID: $id by User ID: $user_id";
+        require '../admin/admin_manage/audit.php';
     } else {
         echo json_encode(['success' => false, 'error' => 'Failed to send community message']);
     }

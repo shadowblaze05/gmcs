@@ -1,6 +1,11 @@
 <?php
 session_start();
 
+$username = $_SESSION['username'];
+$user_id = $_SESSION['user_id'];
+
+require_once 'audit.php';
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
 

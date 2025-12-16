@@ -12,6 +12,8 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
+require_once 'audit.php';
+
 $host = "127.0.0.1";
 $username = "root";
 $password = "";

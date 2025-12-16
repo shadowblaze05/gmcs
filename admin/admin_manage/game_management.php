@@ -6,13 +6,10 @@ if ($_SESSION['role'] !== 'admin') {
     header("Location: ../../index.html");
     exit();
 }
-$host = "127.0.0.1";
-$username = "root";
-$password = "";
-$database = "gcms";
-$port = 3307;
+$user_id = $_SESSION['user_id'];
 
-$conn = new mysqli($host, $username, $password, $database, $port);
+$action = "Visited Game management page";
+require 'audit.php';
 
 if (isset($_POST['add_game'])) {
     if (isset($_FILES['game_image']) && $_FILES['game_image']['error'] == 0) {
@@ -45,6 +42,8 @@ if (isset($_POST['add_game'])) {
             $stmt->execute();
             $stmt->close();
             header("Location: " . $_SERVER['PHP_SELF']);
+            $action = "Added new game: $title";
+            require 'audit.php';
             exit();
         } else {
             echo "Sorry, there was an error uploading your file."; exit();
@@ -94,6 +93,8 @@ if (isset($_POST['update_game'])) {
     $stmt->close();
 
     header("Location: " . $_SERVER['PHP_SELF']);
+    $action = "Updated game ID: $game_id";
+    require 'audit.php';
     exit();
 }
 
@@ -107,6 +108,8 @@ if (isset($_GET['delete'])) {
     $stmt->close();
 
     header("Location: " . $_SERVER['PHP_SELF']);
+    $action = "Deleted game ID: $game_id";
+    require 'audit.php';
     exit();
 }
 
@@ -121,6 +124,8 @@ function getGames($conn, $search = '') {
 
 $search = isset($_POST['search']) ? $_POST['search'] : '';
 $games = getGames($conn, $search);
+$action = "Searched games with query: $search";
+require 'audit.php';
 
 $edit = false;
 $editData = null;
@@ -131,6 +136,7 @@ if (isset($_GET['edit'])) {
     $result = $conn->query("SELECT * FROM games WHERE game_id = $game_id");
     $editData = $result->fetch_assoc();
 }
+
 ?>
 
 <!DOCTYPE html>

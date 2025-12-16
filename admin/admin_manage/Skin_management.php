@@ -12,17 +12,11 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
-$host = "127.0.0.1";
-$username = "root";
-$password = "";
-$database = "gcms";
-$port = 3307;
+$user_id = $_SESSION['user_id'];
 
-$conn = new mysqli($host, $username, $password, $database, $port);
+$action = "Visited Skin management page";
+require 'audit.php';
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
 
 // Handle adding skin
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_skin'])) {
@@ -68,6 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_skin'])) {
         $sqlGameSkin = "INSERT INTO game_skin (skin_id, game_id) VALUES ('$skin_id', '$game_id')";
         if ($conn->query($sqlGameSkin) === TRUE) {
             echo "Skin added successfully.";
+
+            $action = "Added skin $skin_name (ID: $skin_id) to game ID $game_id";
+            require 'audit.php';
+            
         } else {
             echo "Error adding skin to game_skin: " . $conn->error;
         }
@@ -100,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_skin'])) {
         $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
         // Allow only image file types
-        if (!in_array($imageFileType, ['jpg', 'jpeg', 'png', 'gif'])) {
+        if (!in_array($imageFileType, ['jpg', 'jpeg', 'png', 'gif' ])) {
             echo "Only JPG, JPEG, PNG & GIF files are allowed."; exit();
         }
 
@@ -116,6 +114,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_skin'])) {
     $sql = "UPDATE skins SET skin_name = '$skin_name', rarity = '$rarity', skin_image = '$skin_image' WHERE skin_id = '$skin_id'";
     if ($conn->query($sql) === TRUE) {
         echo "Skin updated successfully.";
+
+        $action = "Updated skin $skin_name (ID: $skin_id)";
+        require 'audit.php';
+
     } else {
         echo "Error updating skin: " . $conn->error;
     }
@@ -124,13 +126,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_skin'])) {
 // Handle deleting skin
 if (isset($_GET['delete_skin'])) {
     $delete_id = $_GET['delete_skin'];
+
+    // 🔹 Fetch skin name BEFORE deleting it
+    $skinQuery = $conn->query("SELECT skin_name FROM skins WHERE skin_id = '$delete_id'");
+    $skinData = $skinQuery->fetch_assoc();
+    $skin_name = $skinData ? $skinData['skin_name'] : "Unknown Skin";
+
     // Delete from game_skin table first to maintain referential integrity
     $sqlGameSkinDelete = "DELETE FROM game_skin WHERE skin_id = '$delete_id'";
     if ($conn->query($sqlGameSkinDelete) === TRUE) {
+
         // Now delete from skins table
         $sqlDeleteSkin = "DELETE FROM skins WHERE skin_id = '$delete_id'";
         if ($conn->query($sqlDeleteSkin) === TRUE) {
+
             echo "Skin deleted successfully.";
+
+            // 🔹 Audit log with skin name included
+            $action = "Deleted skin '$skin_name' (ID: $delete_id)";
+            require 'audit.php';
         } else {
             echo "Error deleting skin: " . $conn->error;
         }
@@ -139,11 +153,15 @@ if (isset($_GET['delete_skin'])) {
     }
 }
 
+
 // Search functionality
 $search = '';
 if (isset($_GET['search'])) {
     $search = $_GET['search'];
     $sql = "SELECT * FROM skins WHERE skin_name LIKE '%$search%'";
+    $action = "Searched skins with query: $search";
+    require 'audit.php';
+
 } else {
     $sql = "SELECT * FROM skins";
 }
@@ -153,10 +171,11 @@ $skins = $result->fetch_all(MYSQLI_ASSOC);
 
 ?>
 
-<!-- Rest of your HTML remains the same -->
+
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -169,249 +188,251 @@ $skins = $result->fetch_all(MYSQLI_ASSOC);
             margin: 0;
             padding: 0;
         }
+
         .container {
-    width: 80%;
-    margin: 30px auto;
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+            width: 80%;
+            margin: 30px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-h2 {
-    color: #2c3e50;
-    text-align: center;
-    font-size: 28px;
-}
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 28px;
+        }
 
-.search-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
+        .search-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
 
-.search-container input[type="text"] {
-    width: 50%;
-    padding: 10px;
-    border-radius: 25px;
-    border: 1px solid #ccc;
-    margin-right: 10px;
-    font-size: 16px;
-}
+        .search-container input[type="text"] {
+            width: 50%;
+            padding: 10px;
+            border-radius: 25px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            font-size: 16px;
+        }
 
-.search-container button {
-    padding: 10px 15px;
-    background-color: #007BFF;
-    color: white;
-    border-radius: 25px;
-    border: none;
-    cursor: pointer;
-}
+        .search-container button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+        }
 
-.search-container button:hover {
-    background-color: #0056b3;
-}
+        .search-container button:hover {
+            background-color: #0056b3;
+        }
 
-.form-container {
-    background-color: #ecf0f1;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+        .form-container {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-.form-container input,
-.form-container select {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 16px;
-}
+        .form-container input,
+        .form-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
 
-.form-container button {
-    width: 100%;
-    padding: 15px;
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    cursor: pointer;
-}
+        .form-container button {
+            width: 100%;
+            padding: 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+        }
 
-.form-container button:hover {
-    background-color: #0056b3;
-}
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
 
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
 
-.card {
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    padding: 15px;
-    text-align: center;
-    transition: transform 0.2s ease-in-out;
-}
+        .card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s ease-in-out;
+        }
 
-.card:hover {
-    transform: scale(1.05);
-}
+        .card:hover {
+            transform: scale(1.05);
+        }
 
-.card img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 10px;
-}
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
 
-.card h3 {
-    font-size: 18px;
-    color: #333;
-    margin-top: 15px;
-}
+        .card h3 {
+            font-size: 18px;
+            color: #333;
+            margin-top: 15px;
+        }
 
-.card p {
-    font-size: 14px;
-    color: #7f8c8d;
-}
+        .card p {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
 
-.action-buttons {
-    margin-top: 15px;
-    display: flex;
-    justify-content: space-between;
-}
+        .action-buttons {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
 
-.action-buttons a {
-    background-color: #007BFF;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-size: 14px;
-}
+        .action-buttons a {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
 
-.action-buttons a:hover {
-    background-color: #0056b3;
-}
+        .action-buttons a:hover {
+            background-color: #0056b3;
+        }
 
-.image-preview {
-    width: 150px;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 8px;
-    margin-top: 10px;
-}
-
+        .image-preview {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2>Skin Management</h2>
+    <div class="container">
+        <h2>Skin Management</h2>
 
-    <!-- Search Bar -->
-    <div class="search-container">
-        <form method="GET" action="">
-            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by skin name">
-            <button type="submit">Search</button>
-        </form>
-    </div>
-
-    <!-- Add/Edit Skin Form -->
-    <div class="form-container">
-    <h3><?php echo isset($editSkin) ? 'Edit Skin' : 'Add New Skin'; ?></h3>
-
-    <form method="POST" enctype="multipart/form-data">
-        <!-- Game Selection -->
-        <label>Game Title:</label>
-        <select name="game_id" required>
-            <option value="">Select Game</option>
-            <?php
-            $gameResult = $conn->query("SELECT game_id, title FROM games");
-            while ($gameRow = $gameResult->fetch_assoc()) {
-                $selected = isset($editSkin) && $editSkin['game_id'] == $gameRow['game_id'] ? 'selected' : '';
-                echo "<option value='" . $gameRow['game_id'] . "' $selected>" . $gameRow['title'] . "</option>";
-            }
-            ?>
-        </select>
-
-        <!-- Skin Name -->
-        <label>Skin Name:</label>
-        <input type="text" name="skin_name" required value="<?php echo isset($editSkin) ? $editSkin['skin_name'] : ''; ?>">
-
-        <!-- Rarity -->
-        <label>Rarity:</label>
-        <input type="text" name="rarity" required value="<?php echo isset($editSkin) ? $editSkin['rarity'] : ''; ?>">
-
-        <!-- Skin Image Upload -->
-        <label>Skin Image (Optional):</label>
-        <input type="file" name="skin_image" accept="image/*" onchange="previewImage(event)">
-
-        <!-- Image Preview -->
-        <div id="imagePreview">
-            <?php if (isset($editSkin) && $editSkin['skin_image']): ?>
-                <img src="<?php echo $editSkin['skin_image']; ?>" class="image-preview" alt="Current Skin Image">
-            <?php endif; ?>
+        <!-- Search Bar -->
+        <div class="search-container">
+            <form method="GET" action="">
+                <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by skin name">
+                <button type="submit">Search</button>
+            </form>
         </div>
 
-        <button type="submit" name="<?php echo isset($editSkin) ? 'edit_skin' : 'add_skin'; ?>">
-            <?php echo isset($editSkin) ? 'Update Skin' : 'Add Skin'; ?>
-        </button>
+        <!-- Add/Edit Skin Form -->
+        <div class="form-container">
+            <h3><?php echo isset($editSkin) ? 'Edit Skin' : 'Add New Skin'; ?></h3>
 
-        <?php if (isset($editSkin)): ?>
-            <input type="hidden" name="skin_id" value="<?php echo $editSkin['skin_id']; ?>">
-        <?php endif; ?>
-    </form>
-</div>
+            <form method="POST" enctype="multipart/form-data">
+                <!-- Game Selection -->
+                <label>Game Title:</label>
+                <select name="game_id" required>
+                    <option value="">Select Game</option>
+                    <?php
+                    $gameResult = $conn->query("SELECT game_id, title FROM games");
+                    while ($gameRow = $gameResult->fetch_assoc()) {
+                        $selected = isset($editSkin) && $editSkin['game_id'] == $gameRow['game_id'] ? 'selected' : '';
+                        echo "<option value='" . $gameRow['game_id'] . "' $selected>" . $gameRow['title'] . "</option>";
+                    }
+                    ?>
+                </select>
+
+                <!-- Skin Name -->
+                <label>Skin Name:</label>
+                <input type="text" name="skin_name" required value="<?php echo isset($editSkin) ? $editSkin['skin_name'] : ''; ?>">
+
+                <!-- Rarity -->
+                <label>Rarity:</label>
+                <input type="text" name="rarity" required value="<?php echo isset($editSkin) ? $editSkin['rarity'] : ''; ?>">
+
+                <!-- Skin Image Upload -->
+                <label>Skin Image (Optional):</label>
+                <input type="file" name="skin_image" accept="image/*" onchange="previewImage(event)">
+
+                <!-- Image Preview -->
+                <div id="imagePreview">
+                    <?php if (isset($editSkin) && $editSkin['skin_image']): ?>
+                        <img src="<?php echo $editSkin['skin_image']; ?>" class="image-preview" alt="Current Skin Image">
+                    <?php endif; ?>
+                </div>
+
+                <button type="submit" name="<?php echo isset($editSkin) ? 'edit_skin' : 'add_skin'; ?>">
+                    <?php echo isset($editSkin) ? 'Update Skin' : 'Add Skin'; ?>
+                </button>
+
+                <?php if (isset($editSkin)): ?>
+                    <input type="hidden" name="skin_id" value="<?php echo $editSkin['skin_id']; ?>">
+                <?php endif; ?>
+            </form>
+        </div>
 
 
-    <!-- Skin Display -->
-    <div class="skin-card">
-        <?php if (count($skins) > 0): ?>
-            <div class="grid-container">
-                <?php foreach($skins as $skin): ?>
-                    <div class="card">
-                        <img src="<?php echo $skin['skin_image']; ?>" alt="Skin Image">
-                        <h3><?php echo $skin['skin_name']; ?></h3>
-                        <p>Rarity: <?php echo $skin['rarity']; ?></p>
+        <!-- Skin Display -->
+        <div class="skin-card">
+            <?php if (count($skins) > 0): ?>
+                <div class="grid-container">
+                    <?php foreach ($skins as $skin): ?>
+                        <div class="card">
+                            <img src="<?php echo $skin['skin_image']; ?>" alt="Skin Image">
+                            <h3><?php echo $skin['skin_name']; ?></h3>
+                            <p>Rarity: <?php echo $skin['rarity']; ?></p>
 
-                        <div class="action-buttons">
-                            <a href="?edit_skin=<?php echo $skin['skin_id']; ?>">Edit</a>
-                            <a href="?delete_skin=<?php echo $skin['skin_id']; ?>" onclick="return confirm('Are you sure you want to delete this skin?');">Delete</a>
+                            <div class="action-buttons">
+                                <a href="?edit_skin=<?php echo $skin['skin_id']; ?>">Edit</a>
+                                <a href="?delete_skin=<?php echo $skin['skin_id']; ?>" onclick="return confirm('Are you sure you want to delete this skin?');">Delete</a>
+                            </div>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php else: ?>
-            <p>No skins found.</p>
-        <?php endif; ?>
-    </div>
-    <br>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <p>No skins found.</p>
+            <?php endif; ?>
+        </div>
+        <br>
         <!-- Back Button -->
         <a href="management.php" class="back-button" style="text-decoration: none; padding: 10px 20px; background-color:rgb(41, 125, 208); color: white; border-radius: 8px; display: inline-block;">
-            Back 
+            Back
         </a>
-</div>
+    </div>
 
-<script>
-    function previewImage(event) {
-        var reader = new FileReader();
-        reader.onload = function() {
-            var output = document.getElementById('imagePreview');
-            output.innerHTML = "<img src='" + reader.result + "' class='image-preview'>";
+    <script>
+        function previewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function() {
+                var output = document.getElementById('imagePreview');
+                output.innerHTML = "<img src='" + reader.result + "' class='image-preview'>";
+            }
+            reader.readAsDataURL(event.target.files[0]);
         }
-        reader.readAsDataURL(event.target.files[0]);
-    }
-</script>
+    </script>
 
 </body>
+
 </html>
 
 <?php $conn->close(); ?>

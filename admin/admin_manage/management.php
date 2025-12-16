@@ -11,7 +11,11 @@ if ($_SESSION['role'] !== 'admin') {
     header("Location: ../../index.html");
     exit();
 }
-  
+
+$user_id = $_SESSION['user_id'];
+
+$action = "Visited management page";
+require_once 'audit.php';
 
 $searchResults = [];
 $hasSearched = false;
@@ -170,7 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["query"], $_GET["module"
         <form action="rank_management.php" method="POST"><button class="option-button" type="submit">Admin-Ranks</button></form> 
         <form action="transaction_management.php" method="POST"><button class="option-button" type="submit">User-Transactions</button></form>
         <form action="review_management.php" method="POST"><button class="option-button" type="submit">User-Reviews</button></form>
-        <form action="collections_management.php" method="POST"><button class="option-button" type="submit">User-Profile</button></form>
+        <form action="audit_trail_view.php" method="POST"><button class="option-button" type="submit">Audit-Trail</button></form>
        
     </div>
 

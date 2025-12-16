@@ -12,62 +12,122 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
+$action = "Visited Rank management page";
+require 'audit.php';
+
 // Fetch all games from the games table
 $games_query = "SELECT * FROM games";
 $games_result = mysqli_query($conn, $games_query);
 
 // Handle form submissions (add, edit, delete)
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
+    // ADD RANK
     if (isset($_POST['add_rank'])) {
         $game_id = $_POST['game_id'];
         $rank_name = $_POST['rank_name'];
         $rank_level = $_POST['rank_level'];
 
-        $add_rank_query = "INSERT INTO ranks (rank_name, rank_level) 
-                           VALUES ('$rank_name', '$rank_level')";
+        $add_rank_query = "INSERT INTO ranks (rank_name, rank_level) VALUES ('$rank_name', '$rank_level')";
         if (mysqli_query($conn, $add_rank_query)) {
             $rank_id = mysqli_insert_id($conn);
-            $insert_game_rank_query = "INSERT INTO game_ranks (game_id, rank_id) 
-                                       VALUES ('$game_id', '$rank_id')";
-            mysqli_query($conn, $insert_game_rank_query);
+
+            mysqli_query(
+                $conn,
+                "INSERT INTO game_ranks (game_id, rank_id) VALUES ('$game_id', '$rank_id')"
+            );
+
+            // Audit
+            $action = "Added rank $rank_name -> $rank_level (ID: $rank_id) for game ID $game_id";
+            require 'audit.php';
         }
     }
 
+    // DELETE RANK
     if (isset($_POST['delete_rank'])) {
         $rank_id = $_POST['rank_id'];
-        $delete_game_rank_query = "DELETE FROM game_ranks WHERE rank_id = '$rank_id'";
-        mysqli_query($conn, $delete_game_rank_query);
-        $delete_rank_query = "DELETE FROM ranks WHERE rank_id = '$rank_id'";
-        mysqli_query($conn, $delete_rank_query);
+
+        mysqli_query($conn, "DELETE FROM game_ranks WHERE rank_id = '$rank_id'");
+        mysqli_query($conn, "DELETE FROM ranks WHERE rank_id = '$rank_id'");
+
+        // Audit
+        $action = "Deleted rank ID: $rank_name $rank_level";
+        require 'audit.php';
     }
 
+    // EDIT RANK
     if (isset($_POST['edit_rank'])) {
         $rank_id = $_POST['rank_id'];
         $game_id = $_POST['game_id'];
-        $rank_name = $_POST['rank_name'];
-        $rank_level = $_POST['rank_level'];
+        $new_rank_name = $_POST['rank_name'];
+        $new_rank_level = $_POST['rank_level'];
 
-        $edit_rank_query = "UPDATE ranks 
-                            SET rank_name = '$rank_name', rank_level = '$rank_level' 
-                            WHERE rank_id = '$rank_id'";
-        mysqli_query($conn, $edit_rank_query);
+        // 1. Get the current rank info BEFORE updating
+        $old_data_query = "
+            SELECT r.rank_name, r.rank_level, gr.game_id 
+            FROM ranks r 
+            JOIN game_ranks gr ON r.rank_id = gr.rank_id 
+            WHERE r.rank_id = '$rank_id'
+        ";
+        $old_data_result = mysqli_query($conn, $old_data_query);
+        $old_data = mysqli_fetch_assoc($old_data_result);
 
-        $update_game_rank_query = "UPDATE game_ranks 
-                                   SET game_id = '$game_id' 
-                                   WHERE rank_id = '$rank_id'";
-        mysqli_query($conn, $update_game_rank_query);
+        $old_rank_name = $old_data['rank_name'];
+        $old_rank_level = $old_data['rank_level'];
+        $old_game_id = $old_data['game_id'];
+
+        // 2. Perform updates
+        mysqli_query(
+            $conn,
+            "UPDATE ranks SET rank_name = '$new_rank_name', rank_level = '$new_rank_level' WHERE rank_id = '$rank_id'"
+        );
+
+        mysqli_query(
+            $conn,
+            "UPDATE game_ranks SET game_id = '$game_id' WHERE rank_id = '$rank_id'"
+        );
+
+        // 3. Audit log (old → new)
+        $action = "
+            Edited rank ID: $rank_id | 
+            Name: $old_rank_name → $new_rank_name | 
+            Level: $old_rank_level → $new_rank_level | 
+            Game: $old_game_id → $game_id
+        ";
+        require 'audit.php';
     }
 }
 
-if (isset($_GET['delete'])) {
+    // DELETE RANK VIA GET
+
+    if (isset($_GET['delete'])) {
     $rank_id = $_GET['delete'];
+
+    // Fetch rank_name and rank_level BEFORE deleting
+    $rank_info_query = "SELECT rank_name, rank_level FROM ranks WHERE rank_id = '$rank_id'";
+    $rank_info_result = mysqli_query($conn, $rank_info_query);
+    $rank_info = mysqli_fetch_assoc($rank_info_result);
+
+    $rank_name = $rank_info['rank_name'];
+    $rank_level = $rank_info['rank_level'];
+
+    // Delete from game_ranks first
     $delete_game_rank_query = "DELETE FROM game_ranks WHERE rank_id = '$rank_id'";
     mysqli_query($conn, $delete_game_rank_query);
+
+    // Delete actual rank
     $delete_rank_query = "DELETE FROM ranks WHERE rank_id = '$rank_id'";
     mysqli_query($conn, $delete_rank_query);
+
+    // Log audit
+    $action = "Deleted rank: $rank_name Level: $rank_level, (ID: $rank_id)";
+    require 'audit.php';
+
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
+
 
 // Search functionality
 $search = "";
@@ -78,6 +138,9 @@ if (isset($_GET['search'])) {
                          JOIN ranks r ON gr.rank_id = r.rank_id
                          JOIN games g ON gr.game_id = g.game_id
                          WHERE r.rank_name LIKE '%$search%' OR g.title LIKE '%$search%'";
+
+$action = "Searched Rank with query: $search";
+    require 'audit.php';
 } else {
     $game_ranks_query = "SELECT g.title, r.rank_id, r.rank_name, r.rank_level 
                          FROM game_ranks gr

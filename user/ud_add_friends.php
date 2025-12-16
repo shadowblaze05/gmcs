@@ -10,6 +10,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $sender_id = (int)$_SESSION['user_id'];
+$action = "Declined friend request ID: $request_id by User ID: $user_id";
+require '../admin/admin_manage/audit.php';
 
 // Get POSTed JSON
 $data = json_decode(file_get_contents('php://input'), true);
@@ -19,6 +21,8 @@ if (!isset($data['username']) || empty(trim($data['username']))) {
 }
 
 $friend_username = trim($data['username']);
+$action = "Sent friend request to: $friend_username";
+require '../admin/admin_manage/audit.php';
 
 // Check if user exists
 $stmt = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
@@ -62,6 +66,9 @@ if (!$stmt) {
 $stmt->bind_param("ii", $sender_id, $receiver_id);
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'friend' => ['user_id' => $receiver_id, 'username' => $friend_username]]);
+
+    $action = "Sent friend request from User ID: $sender_id to User ID: $receiver_id";
+    require '../admin/admin_manage/audit.php';
 } else {
     error_log("Insert failed: " . $stmt->error);
     echo json_encode(['success' => false, 'error' => 'Database insert failed: ' . $stmt->error]);

@@ -1,6 +1,11 @@
 <?php
 include("../../db.php");
 
+
+$action = "Get skins for game ID: " . (isset($_GET['game_id']) ? $_GET['game_id'] : 'N/A');
+require_once 'audit.php';
+
+
 if (isset($_GET['game_id'])) {
     $game_id = $_GET['game_id'];
 
@@ -20,4 +25,6 @@ if (isset($_GET['game_id'])) {
 } else {
     echo json_encode([]);
 }
+
+?>
 

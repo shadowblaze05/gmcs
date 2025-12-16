@@ -36,4 +36,6 @@ if ($insert->execute()) {
 } else {
     echo "❌ FAILED: " . $conn->error;
 }
+require_once 'audit.php';
 $insert->close();
+?>

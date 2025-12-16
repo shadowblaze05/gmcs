@@ -1,6 +1,11 @@
 <?php
 session_start();
 require "../db.php";
+
+$user_id = $_SESSION['user_id'];
+$action = "Viewed friend requests: User ID $user_id";
+require '../admin/admin_manage/audit.php';
+
 header("Content-Type: application/json");
 
 if (!isset($_SESSION['user_id'])) {
@@ -27,4 +32,5 @@ while ($row = $res->fetch_assoc()) {
 
 echo json_encode($requests);
 $q->close();
+
 ?>

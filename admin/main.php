@@ -11,6 +11,11 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 $username = $_SESSION['username'];
+
+$user_id = $_SESSION['user_id'];
+
+$action = "Visited main admin dashboard";
+require_once 'admin_manage/audit.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

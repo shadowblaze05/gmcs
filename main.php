@@ -13,6 +13,9 @@ if ($_SESSION['role'] !== 'user') {
 } 
 
 $username = $_SESSION['username'];
+$user_id = $_SESSION['user_id'];
+
+require_once 'admin/admin_manage/audit.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

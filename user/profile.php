@@ -2,17 +2,20 @@
 require "../db.php";
 session_start();
 
+
+$user_id = $_SESSION['user_id'];
+$action = "Viewed profile for user ID: $user_id";
+require '../admin/admin_manage/audit.php';
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(["success" => false, "error" => "Not logged in"]);
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
-
-/////////////////////////
-// FETCH USER DATA
-/////////////////////////
-$user_stmt = $conn->prepare("SELECT username, email FROM users WHERE user_id = ?");
+        /////////////////////////
+        // FETCH USER DATA
+        /////////////////////////
+        $user_stmt = $conn->prepare("SELECT username, email FROM users WHERE user_id = ?");
 $user_stmt->bind_param("i", $user_id);
 $user_stmt->execute();
 $user_data = $user_stmt->get_result()->fetch_assoc();

@@ -1,6 +1,11 @@
 <?php
 session_start();
 require_once '../db.php';
+
+$user_id = $_SESSION['user_id'];
+$action = "Viewed game details for user ID: $user_id";
+require '../admin/admin_manage/audit.php';
+
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'], $_GET['collection_id'])) {
@@ -35,4 +40,9 @@ echo json_encode([
     'transaction' => $game['transaction_id'],
     'review' => $game['review']
 ]);
+
+$action = "Viewed game details for collection ID: $collection_id";
+require '../admin/admin_manage/audit.php';
+
+
 ?>

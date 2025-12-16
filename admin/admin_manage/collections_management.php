@@ -12,17 +12,9 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
-$host = "127.0.0.1";
-$username = "root";
-$password = "";
-$database = "gcms";
-$port = 3307;
-
-    $conn = new mysqli($host, $username, $password, $database, $port);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$user_id = $_SESSION['user_id'];
+$action = "Visited Collection management page";
+require_once 'audit.php';
 
 $searchKeyword = isset($_GET['search']) ? $_GET['search'] : '';
 
@@ -175,6 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_collection'])) {
 }
 
 $collection = getCollection($conn, $searchKeyword);
+require_once 'audit.php';
 ?>
 
 

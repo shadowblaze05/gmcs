@@ -13,6 +13,9 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
 }
 
 $user_id = (int)$_SESSION['user_id'];
+
+$action = "Visited User Dashboard";
+require '../admin/admin_manage/audit.php';
 $username = htmlspecialchars($_SESSION['username'], ENT_QUOTES, 'UTF-8');
 
 // ---------------------------------------------------------
@@ -101,6 +104,8 @@ $friendsQuery->close();
                     <?php foreach ($friends as $f): ?>
                         <li class="item" data-id="<?= $f['user_id'] ?>">
                             <span><?= htmlspecialchars($f['username']) ?></span>
+                            <button class="viewBtn" style="margin-left:10px;"
+                                onclick="window.location.href='user_profile_view.php?user_id=<?= $f['user_id'] ?>'">View</button>
                             <button class="delBtn" style="margin-left:10px;">Delete</button>
                         </li>
                     <?php endforeach; ?>
@@ -193,10 +198,10 @@ $friendsQuery->close();
                                 <?php endif; ?>
                                 <?= htmlspecialchars($game['title']) ?>
                                 <!--<button type="button" onclick="openProfile(<?= $game['game_id'] ?>)">View Profile</button>-->
-                            </li>   
+                            </li>
                 </ul>
 
-             </div>
+            </div>
             <div style="display:flex; gap:6px;">
                 <!-- Update -->
                 <form action="update_game.php" method="POST" style="display:inline;">
@@ -352,6 +357,32 @@ $friendsQuery->close();
             }
         });
 
+        function viewUserProfile(user_id) {
+            // Open profile modal or redirect
+            fetch(`user_profile_view.php?user_id=${user_id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) return alert('Cannot load user profile');
+
+                    // Example: simple modal display
+                    let details = `
+                <h3>${data.username}'s Profile</h3>
+                <p>Email: ${data.email}</p>
+                <p>Games:</p>
+                <ul>
+                    ${data.games.map(g => `<li>${g.title} (Rank: ${g.rank || 'None'})</li>`).join('')}
+                </ul>
+            `;
+                    const modal = document.getElementById('profileModal');
+                    modal.innerHTML = `
+                <button onclick="closeProfile()">Close</button>
+                ${details}
+            `;
+                    modal.style.display = 'block';
+                });
+        }
+
+
         // --------------------------
         // ADD FRIEND TO LIST
         // --------------------------
@@ -360,21 +391,19 @@ $friendsQuery->close();
             li.className = "item";
             li.dataset.id = friend.user_id;
 
+            // Friend name
             const span = document.createElement("span");
             span.textContent = friend.username;
             li.appendChild(span);
 
-            // Click to chat
-            span.addEventListener("click", () => {
-                CURRENT_CHAT = {
-                    type: "private",
-                    id: friend.user_id,
-                    name: friend.username
-                };
-                document.getElementById("chatTitle").innerText = friend.username + " (Chat)";
-                document.getElementById("chatStatus").innerText = "Connected";
-                loadMessages();
+            // View button
+            const viewBtn = document.createElement("button");
+            viewBtn.textContent = "View";
+            viewBtn.style.marginLeft = "10px";
+            viewBtn.addEventListener("click", () => {
+                viewUserProfile(friend.user_id);
             });
+            li.appendChild(viewBtn);
 
             // Delete / Unfriend button
             const delBtn = document.createElement("button");
@@ -671,11 +700,7 @@ $friendsQuery->close();
         <p>Review: ${data.review}</p>
     `;
         }
-
     </script>
-    
-
-
 </body>
 
 </html>

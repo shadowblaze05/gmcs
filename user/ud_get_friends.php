@@ -1,6 +1,11 @@
 <?php
 session_start();
 require "../db.php";
+
+$user_id = $_SESSION['user_id'];
+$action = "Viewed friends list: User ID $user_id";
+require '../admin/admin_manage/audit.php';
+
 header("Content-Type: application/json");
 
 if (!isset($_SESSION['user_id'])) {
