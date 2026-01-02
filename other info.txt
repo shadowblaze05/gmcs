@@ -1,0 +1,33 @@
+Accounts
+Blaze - Blaze123 = User
+Edieson - Edieson123 = User
+Shadow - Shadow123 = Admin
+
+New features
+Finish update game
+about page
+
+
+Views
+Profile.php 
+line 25
+
+Stored Procedure
+update_game.php
+line 203
+
+Stored Function
+delete_game.php
+line 
+
+Transaction 
+update_game.php
+line 185
+
+Isolation
+db.php
+line 14
+
+There are also in the database
+
+SHOW TRIGGERS LIKE 'users'; - to show the triggers
