@@ -2,179 +2,246 @@
 session_start();
 require_once '../db.php';
 
-if (!isset($_SESSION['user_id'])) {
+/* ---------------- AUTH CHECK ---------------- */
+if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
-    exit();
+    exit;
 }
 
 $user_id = (int)$_SESSION['user_id'];
-$action = "Visited Update Game page";
+$action  = "Visited Update Game page";
 require '../admin/admin_manage/audit.php';
 
-
-/* ---------------------------------------------------------
-   STEP 1 — SHOW UPDATE FORM
---------------------------------------------------------- */
+/* =================================================
+   STEP 1 — DISPLAY UPDATE FORM
+================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['game_id']) && !isset($_POST['skin_id'])) {
 
     $game_id = (int)$_POST['game_id'];
 
-    /* ------------------ LOAD RANKS ------------------ */
-    $rankQuery = $conn->prepare("
+    /* ---------- LOAD RANKS ---------- */
+    $rankStmt = $conn->prepare("
         SELECT r.rank_id, r.rank_name, r.rank_level
         FROM ranks r
-        JOIN game_ranks gr ON r.rank_id = gr.rank_id
+        INNER JOIN game_ranks gr ON r.rank_id = gr.rank_id
         WHERE gr.game_id = ?
         ORDER BY r.rank_name, r.rank_level
     ");
-    $rankQuery->bind_param("i", $game_id);
-    $rankQuery->execute();
-    $rankResult = $rankQuery->get_result();
+    $rankStmt->bind_param("i", $game_id);
+    $rankStmt->execute();
+    $rankResult = $rankStmt->get_result();
 
     $rankData = [];
     while ($row = $rankResult->fetch_assoc()) {
         $rankData[$row['rank_name']][] = [
-            "rank_id" => $row["rank_id"],
-            "rank_level" => $row["rank_level"]
+            'rank_id'    => $row['rank_id'],
+            'rank_level' => $row['rank_level']
         ];
     }
 
-    /* ------------------ LOAD SKINS ------------------ */
-    $skinQuery = $conn->prepare("
+    /* ---------- LOAD ALL SKINS FOR THE GAME ---------- */
+    $skinStmt = $conn->prepare("
         SELECT s.skin_id, s.skin_name
         FROM skins s
-        JOIN game_skin gs ON s.skin_id = gs.skin_id
+        INNER JOIN game_skin gs ON s.skin_id = gs.skin_id
         WHERE gs.game_id = ?
         ORDER BY s.skin_name
     ");
-    $skinQuery->bind_param("i", $game_id);
-    $skinQuery->execute();
-    $skinResult = $skinQuery->get_result();
+    $skinStmt->bind_param("i", $game_id);
+    $skinStmt->execute();
+    $skinResult = $skinStmt->get_result();
 ?>
     <!doctype html>
-    <html>
+    <html lang="en">
 
     <head>
+        <meta charset="UTF-8">
         <title>Update Game</title>
+        <style>
+            body {
+                background: linear-gradient(135deg, #05060a, #0d1020);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                font-family: Arial, sans-serif;
+                color: #fff;
+            }
+
+            .form-container {
+                background: #0f1225;
+                width: 420px;
+                padding: 30px;
+                border-radius: 14px;
+                box-shadow: 0 25px 45px rgba(0, 0, 0, .6);
+            }
+
+            label {
+                font-size: 14px;
+                color: #cfd2ff;
+            }
+
+            select,
+            input,
+            textarea {
+                width: 100%;
+                margin-top: 6px;
+                margin-bottom: 16px;
+                padding: 9px;
+                border-radius: 7px;
+                border: none;
+                background: #1a1d3a;
+                color: #fff;
+            }
+
+            button {
+                width: 100%;
+                height: 44px;
+                border: none;
+                border-radius: 9px;
+                background: #4f6cff;
+                color: #fff;
+                font-weight: bold;
+                cursor: pointer;
+            }
+
+            .back-btn {
+                background: none;
+                border: none;
+                color: #cfd2ff;
+                cursor: pointer;
+                margin-bottom: 10px;
+            }
+        </style>
     </head>
 
-    <body style="background:#05060a;color:white;font-family:Arial;">
-        <h2>Update Game Info</h2>
+    <body>
+        <div class="form-container">
+            <button class="back-btn" onclick="window.history.back()">← Back</button>
+            <h2>Update Game</h2>
 
-        <form action="update_game.php" method="POST">
-            <input type="hidden" name="game_id" value="<?= $game_id ?>">
+            <form method="POST" action="update_game.php">
+                <input type="hidden" name="game_id" value="<?= $game_id ?>">
 
-            <!-- SKIN DROPDOWN -->
-            <label>Skin Purchased:</label><br>
-            <select name="skin_id" style="width:250px;">
-                <?php while ($skin = $skinResult->fetch_assoc()): ?>
-                    <option value="<?= $skin['skin_id'] ?>"><?= $skin['skin_name'] ?></option>
-                <?php endwhile; ?>
-            </select>
-            <br><br>
+                <label>Skin</label>
+                <select name="skin_id[]" multiple>
+                    <?php while ($skin = $skinResult->fetch_assoc()): ?>
+                        <option value="<?= $skin['skin_id'] ?>">
+                            <?= htmlspecialchars($skin['skin_name']) ?>
+                        </option>
+                    <?php endwhile; ?>
+                </select>
 
-            <!-- RANK DROPDOWN -->
-            <label>Rank:</label><br>
-            <select name="rank_id" id="rankSelect">
-                <?php foreach ($rankData as $rankName => $levels): ?>
-                    <option value="<?= $levels[0]['rank_id'] ?>"><?= $rankName ?></option>
-                <?php endforeach; ?>
-            </select>
-            <br><br>
+                <label>Rank</label>
+                <select name="rank_id" id="rankSelect" required>
+                    <?php foreach ($rankData as $rankName => $levels): ?>
+                        <option value="<?= $levels[0]['rank_id'] ?>">
+                            <?= htmlspecialchars($rankName) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
-            <!-- RANK LEVEL DROPDOWN -->
-            <label>Rank Level:</label><br>
-            <select name="rank_level" id="rankLevelSelect">
-                <?php
-                $firstRank = array_key_first($rankData);
-                foreach ($rankData[$firstRank] as $lvl):
-                ?>
-                    <option value="<?= $lvl['rank_level'] ?>"><?= $lvl['rank_level'] ?></option>
-                <?php endforeach; ?>
-            </select>
-            <br><br>
+                
 
-            <label>Transaction Amount:</label><br>
-            <input type="number" name="transaction"><br><br>
+                <label>Review</label>
+                <textarea name="review_text"></textarea>
 
-            <label>Review:</label><br>
-            <textarea name="review_text"></textarea><br><br>
+                <!--<label>Rating (1–5)</label>
+                <input type="number" name="rating" min="1" max="5">-->
 
-            <label>Rating (1–5):</label><br>
-            <input type="number" name="rating" min="1" max="5"><br><br>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
 
-            <button type="submit">Save</button>
-        </form>
-
-        <!-- AUTO-UPDATE RANK LEVELS -->
         <script>
             const rankData = <?= json_encode($rankData) ?>;
-
             document.getElementById('rankSelect').addEventListener('change', function() {
-                const selectedRankName = this.options[this.selectedIndex].text;
-                const levels = rankData[selectedRankName];
-
-                const levelDropdown = document.getElementById('rankLevelSelect');
-                levelDropdown.innerHTML = "";
-
-                levels.forEach(item => {
-                    const opt = document.createElement("option");
-                    opt.value = item.rank_level;
-                    opt.textContent = item.rank_level;
-                    levelDropdown.appendChild(opt);
+                const levels = rankData[this.options[this.selectedIndex].text];
+                const lvlSel = document.getElementById('rankLevelSelect');
+                lvlSel.innerHTML = '';
+                levels.forEach(l => {
+                    const o = document.createElement('option');
+                    o.textContent = l.rank_level;
+                    lvlSel.appendChild(o);
                 });
             });
         </script>
-
     </body>
 
     </html>
-
 <?php
-    exit();
+    exit;
 }
 
-/* ---------------------------------------------------------
+/* =================================================
    STEP 2 — SAVE UPDATE
---------------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['skin_id'])) {
+================================================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $game_id    = (int) $_POST['game_id'];
+    $rank_id    = (int) $_POST['rank_id'];
+    $rating     = (int) $_POST['rating'];
+    $reviewText = trim($_POST['review_text']);
 
-    $game_id = (int)$_POST['game_id'];
-    $skin_id = (int)$_POST['skin_id'];
-    $rank_id = (int)$_POST['rank_id'];
-    $transaction = (int)$_POST['transaction'];
+    $conn->begin_transaction();
 
-    /* ------------------ INSERT REVIEW INTO reviews TABLE ------------------ */
-    $reviewText = $_POST['review_text'];
-    $rating = (int)$_POST['rating'];
-    $reviewDate = date("Y-m-d");
+    try {
+        // Update skins separately
+        if (!empty($_POST['skin_id'])) {
+            $selected_skins = $_POST['skin_id'];
+            $conn->query("DELETE FROM user_game_skins WHERE user_id = $user_id AND game_id = $game_id");
+            foreach ($selected_skins as $skin_id) {
+                $skin_id = (int)$skin_id;
+                $conn->query("INSERT INTO user_game_skins (user_id, game_id, skin_id) VALUES ($user_id, $game_id, $skin_id)");
+            }
+            // use first skin as main skin for collection
+            $skin_for_sp = (int)$selected_skins[0];
+        } else {
+            $skin_for_sp = 0;
+        }
 
-    $insertReview = $conn->prepare("
-        INSERT INTO reviews (user_id, game_id, review_text, rating, review_date)
-        VALUES (?, ?, ?, ?, ?)
-    ");
-    $insertReview->bind_param("iisis", $user_id, $game_id, $reviewText, $rating, $reviewDate);
-    $insertReview->execute();
+        // Update rank/review/rating via stored procedure
+        $stmt = $conn->prepare("CALL sp_update_user_game_full(?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param(
+            "iiiisi",
+            $user_id,
+            $game_id,
+            $skin_for_sp,
+            $rank_id,
+            $reviewText,
+            $rating
+        );
+        $stmt->execute();
+        $stmt->close();
 
-    $review_id = $insertReview->insert_id;
+        // Log this in audit trail
+        $action = "Updated game ID $game_id (Rank/Review/Skins)";
+        $auditStmt = $conn->prepare("INSERT INTO audit_trail (user_id, action, created_at) VALUES (?, ?, NOW())");
+        $auditStmt->bind_param("is", $user_id, $action);
+        $auditStmt->execute();
+        $auditStmt->close();
 
-    /* ------------------ UPDATE user_game_collection ------------------ */
-    $stmt = $conn->prepare("
-        UPDATE user_game_collection
-        SET skin_id = ?, rank_id = ?, transaction_id = ?, review_id = ?
-        WHERE user_id = ? AND game_id = ?
-    ");
+        $conn->commit();
 
-    $stmt->bind_param("iiiiii", $skin_id, $rank_id, $transaction, $review_id, $user_id, $game_id);
-
-    if ($stmt->execute()) {
         header("Location: user_dashboard.php");
-        exit();
-    } else {
-        echo "Update failed: " . $stmt->error;
+        exit;
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo "Transaction failed: " . $e->getMessage();
     }
 
-    $stmt->close();
-    $conn->close();
+            if ($result['has_skin'] > 0) {
+                // user already owns this skin → skip insert
+            } else {
+                $insertSkin = $conn->prepare(
+                    "INSERT INTO user_game_skins (user_id, game_id, skin_id)
+                     VALUES (?, ?, ?)"
+                );
+                $insertSkin->bind_param("iii", $user_id, $game_id, $skin_id);
+                $insertSkin->execute();
+                $insertSkin->close();
+            }
+
+
+            header("Location: user_dashboard.php");
+    exit;
 }
-?>

@@ -172,7 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["query"], $_GET["module"
         <form action="game_management.php" method="POST"><button class="option-button" type="submit">Admin-Games</button></form>
         <form action="Skin_management.php" method="POST"><button class="option-button" type="submit">Admin-Skins</button></form>
         <form action="rank_management.php" method="POST"><button class="option-button" type="submit">Admin-Ranks</button></form> 
-        <form action="transaction_management.php" method="POST"><button class="option-button" type="submit">User-Transactions</button></form>
+        <!--<form action="transaction_management.php" method="POST"><button class="option-button" type="submit">User-Transactions</button></form>-->
         <form action="review_management.php" method="POST"><button class="option-button" type="submit">User-Reviews</button></form>
         <form action="audit_trail_view.php" method="POST"><button class="option-button" type="submit">Audit-Trail</button></form>
        

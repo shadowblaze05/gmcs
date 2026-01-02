@@ -16,15 +16,21 @@ require_once 'audit.php';
 
 // Optional: search
 $search = '';
-if (isset($_GET['search'])) {
+$searchAction = '';
+$searchUser = '';
+if (isset($_GET['search']) && $_GET['search'] !== '') {
     $search = htmlspecialchars($_GET['search'], ENT_QUOTES, 'UTF-8');
+    // Use prefix search to utilize indexes
+    $searchAction = $search . '%';
+    $searchUser   = $search . '%';
 }
 
-// Fetch audit logs
-$sql = "SELECT a.id, u.username, a.action, a.created_at AS timestamp 
+// Base query
+$sql = "SELECT a.id, u.username, a.action, a.created_at AS timestamp
         FROM audit_trail a
         LEFT JOIN users u ON a.user_id = u.user_id";
 
+// Use index-friendly search
 if ($search) {
     $sql .= " WHERE a.action LIKE ? OR u.username LIKE ?";
 }
@@ -32,10 +38,11 @@ if ($search) {
 $sql .= " ORDER BY a.created_at DESC";
 
 $stmt = $conn->prepare($sql);
+
 if ($search) {
-    $like = "%$search%";
-    $stmt->bind_param("ss", $like, $like);
+    $stmt->bind_param("ss", $searchAction, $searchUser);
 }
+
 $stmt->execute();
 $result = $stmt->get_result();
 ?>

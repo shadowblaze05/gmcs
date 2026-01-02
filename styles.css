@@ -13,7 +13,7 @@ body, html {
     background-color: #f3f4f6;
     color: #333;
     line-height: 1.6;
-    background-image: url("assets/back.jpg");
+    background-image: url('uploads/back.jpg');
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;

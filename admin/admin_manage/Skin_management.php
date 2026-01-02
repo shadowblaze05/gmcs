@@ -173,7 +173,7 @@ $skins = $result->fetch_all(MYSQLI_ASSOC);
 
 
 
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 
 <head>

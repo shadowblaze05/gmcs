@@ -90,7 +90,7 @@ $friendsQuery->close();
                         <button class="more-btn">⋮</button>
                         <div class="more-menu">
                             <a href="profile.php">Profile</a>
-                            <a href="settings.php">Settings</a>
+                            <a href="about.php">About</a>
                             <a href="ud_logout.php">Logout</a>
                         </div>
                     </div>
@@ -281,6 +281,11 @@ $friendsQuery->close();
             }
         });
 
+        setInterval(() => {
+            if (CURRENT_CHAT) loadMessages();
+        }, 2000);
+
+
 
         // --------------------------
         // FRIEND REQUESTS
@@ -411,7 +416,7 @@ $friendsQuery->close();
             delBtn.style.marginLeft = "10px";
             delBtn.addEventListener("click", async () => {
                 if (!confirm(`Are you sure you want to unfriend ${friend.username}?`)) return;
-                const res = await fetch("ud_remove_friend.php", {
+                const res = await fetch("ud_delete_friend.php", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"
@@ -446,7 +451,7 @@ $friendsQuery->close();
             });
             delBtn.addEventListener("click", async () => {
                 if (!confirm(`Are you sure you want to unfriend ${span.textContent}?`)) return;
-                const res = await fetch("ud_remove_friend.php", {
+                const res = await fetch("ud_delete_friend.php", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"

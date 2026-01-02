@@ -142,8 +142,6 @@ require_once 'admin_manage/audit.php';
     </div>
 </header>
 
-<div class="subtitle"><h3>Choose an Option</h3></div>
-
 <div class="container">
     <div class="option-box">
         <h2>Manage</h2>
@@ -152,12 +150,12 @@ require_once 'admin_manage/audit.php';
         </form>
     </div>
 
-    <div class="option-box">
+    <!--<div class="option-box">
         <h2>View</h2>
         <form action="admin_view/profile.php" method="POST">
             <button type="submit">Go to View</button>
         </form>
-    </div>
+    </div> -->
 </div>
 
 
